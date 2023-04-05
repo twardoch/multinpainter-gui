@@ -1,4 +1,3 @@
 # Contributors
 
-- Adam Twardoch <adam+github@twardoch.com>
-- ChatGPT
+* twardoch [adam@twardoch.com](mailto:adam@twardoch.com)

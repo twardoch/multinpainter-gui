@@ -1,6 +1,6 @@
-# multinpainter
+# multinpainter_gui
 
-Iterative image outpainting powered by OpenAI Dall-E API
+GUI for automatic iterative outpainter powered by OpenAI Dall-E API
 
 
 ## Note

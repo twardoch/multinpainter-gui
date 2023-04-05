@@ -1,5 +1,5 @@
 """
-    Setup file for multinpainter.
+    Setup file for multinpainter_gui.
     Use setup.cfg to configure your project.
 
     This file was generated with PyScaffold 4.4.
