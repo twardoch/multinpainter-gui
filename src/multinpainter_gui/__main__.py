@@ -2,29 +2,26 @@
 
 import asyncio
 from pathlib import Path
-import sys
-from typing import Union
+import sys, os
+from PIL import Image
 
-# from ezgooey.ez import *
-from gooey import Gooey, GooeyParser
+#from ezgooey.ez import *
+import ezgooey.logging as logging
+
+from gooey import Gooey, GooeyParser #, Events
+from multinpainter_gui import __version__
+from multinpainter import DESCRPTION_MODEL
+from multinpainter.__main__ import *
 
 GUI_NAME = "Multinpainter GUI"
 CLI_NAME = "multinpainter-gui"
-
-
-from gooey import Gooey, GooeyParser
-from multinpainter_gui import __version__
-from multinpainter import Multinpainter_OpenAI, DESCRPTION_MODEL
-from typing import Optional
-
-COLOR_BG_DARK = "#2b2b2b"
-COLOR_BG_LIGHT = "#383838"
+COLOR_BG_DARK = "#1e1e1e"
+COLOR_BG_LIGHT = "#282828"
 COLOR_TEXT1 = "#dedede"
 COLOR_TEXT2 = "#a4a4a4"
 STD_OPTIONS = {"label_color": COLOR_TEXT1, "help_color": COLOR_TEXT2}
+log = logging.logger(CLI_NAME)
 
-import sys, os
-from pathlib import Path
 
 
 def get_pictures_folder():
@@ -38,6 +35,14 @@ def get_pictures_folder():
     else:
         return home
 
+def check_image(image_path):
+    try:
+        with Image.open(image_path) as image:
+            width, height = img.size
+            print(f"{width} x {height}")
+        return image_path
+    except Exception as e:
+        raise ValueError(f"{image_path} is not an image") from e     
 
 @Gooey(
     # language_dir=getResourcePath("languages"),
@@ -48,7 +53,7 @@ def get_pictures_folder():
     auto_start=False,
     body_bg_color=COLOR_BG_DARK,
     clear_before_run=False,
-    default_size=(960, 600),
+    default_size=(900, 700),
     disable_progress_bar_animation=False,
     disable_stop_button=False,
     dump_build_config=False,
@@ -60,7 +65,7 @@ def get_pictures_folder():
     group_by_type=True,
     header_bg_color=COLOR_BG_DARK,
     header_height=40,
-    header_image_center=False,
+    header_image_center=True,
     header_show_subtitle=False,
     header_show_title=False,
     header_width=90,
@@ -80,22 +85,23 @@ def get_pictures_folder():
     progress_expr=None,
     progress_regex=None,
     required_cols=1,
-    requires_shell=True,
+    #requires_shell=True,
     return_to_config=False,
     richtext_controls=True,
     show_failure_modal=True,
     show_preview_warning=False,
     show_restart_button=True,
-    show_sidebar=True,
+    show_sidebar=False,
     show_stop_warning=True,
     show_success_modal=False,
     sidebar_bg_color=COLOR_BG_LIGHT,
     sidebar_title="Actions",
-    suppress_gooey_flag=True,
+    suppress_gooey_flag=False,
     tabbed_groups=True,
     target=None,
     terminal_font_color=COLOR_TEXT1,
     terminal_panel_color=COLOR_BG_LIGHT,
+    #use_events=[Events.VALIDATE_FORM],
     use_legacy_titles=False,
     menu=[
         {
@@ -118,13 +124,16 @@ def get_pictures_folder():
         }
     ],
 )
-def get_parser():
-    common_parser = GooeyParser(add_help=False)
+def gui():
+    return cli()
+
+def cli():
+    common_parser = GooeyParser(add_help=True, description="Perform iterative inpainting on an image file using OpenAI's DALL-E 2 model.")
     common_parser.add_argument(
         "-i",
         "--image",
         required=True,
-        type=Union[Path, str],
+        type=str,
         dest="image",
         metavar="Input image",
         help="Path to the input image file",
@@ -139,14 +148,30 @@ def get_parser():
             },
         },
     )
-    common_settings_group = common_parser.add_argument_group("Preferences")
+    common_parser.add_argument(
+        "-D",
+        "--describe",
+        dest="cmd_describe",
+        metavar="Describe image",
+        action="store_true",
+        help=" Only describe the image (generate simple prompt)",
+        gooey_options={
+            **STD_OPTIONS,
+            **{
+                "full_width": True,
+            },
+        },
+    )
+    common_settings_group = common_parser.add_argument_group("advanced")
     common_settings_group.add_argument(
         "-O",
         "--openai-api-key",
         type=str,
         dest="openai_api_key",
+        default=os.environ.get("OPENAI_API_KEY"),
         metavar="OpenAI API key",
         help="Not needed if OPENAI_API_KEY environment variable is set",
+        widget="PasswordField",
         gooey_options={
             **STD_OPTIONS,
             **{},
@@ -157,8 +182,10 @@ def get_parser():
         "--hf-api-key",
         type=str,
         dest="hf_api_key",
+        default=os.environ.get("HUGGINGFACEHUB_API_TOKEN"),
         metavar="Huggingface API key",
         help="Not needed if HUGGINGFACEHUB_API_TOKEN environment variable is set",
+        widget="PasswordField",
         gooey_options={
             **STD_OPTIONS,
             **{},
@@ -191,21 +218,23 @@ def get_parser():
         },
     )
 
-    parser = GooeyParser(
-        prog="",
-        description="Perform iterative inpainting on an image file using OpenAI's DALL-E 2 model.",
-    )
-    subparsers = parser.add_subparsers(dest="command", help="commands")
+    parser = common_parser
+    #parser = GooeyParser(
+    #    prog="",
+    #    description="Perform iterative inpainting on an image file using OpenAI's DALL-E 2 model.",
+    #)
+    #subparsers = parser.add_subparsers(dest="command", help="commands")
 
-    inpaint_parser = subparsers.add_parser(
-        "inpaint",
-        help="Perform iterative inpainting on an image file",
-        parents=[common_parser],
-    )
+    #inpaint_parser = subparsers.add_parser(
+    #    "inpaint",
+    #    help="Perform iterative inpainting on an image file",
+    #    parents=[common_parser],
+    #)
+    inpaint_parser = common_parser
     inpaint_parser.add_argument(
         "-o",
         "--output",
-        type=Union[Path, str],
+        type=str,
         dest="output",
         metavar="Output image",
         help="Path to the output image file",
@@ -284,7 +313,8 @@ def get_parser():
             **{},
         },
     )
-    inpaint_settings_group = inpaint_parser.add_argument_group("Inpainting")
+    #inpaint_settings_group = inpaint_parser.add_argument_group("Inpainting")
+    inpaint_settings_group = common_settings_group
     inpaint_settings_group.add_argument(
         "-S",
         "--square",
@@ -313,37 +343,23 @@ def get_parser():
         },
     )
 
-    describe_parser = subparsers.add_parser(
-        "describe",
-        help="Describe the image",
-        parents=[common_parser],
-    )
+
+    #describe_parser = subparsers.add_parser(
+    #    "describe",
+    #    help="Describe the image",
+    #    parents=[common_parser],
+    #)
 
     return parser
 
 
-def main():
-    parser = get_parser()
-    args = parser.parse_args()
-
-    inpainter = Multinpainter_OpenAI(
-        image_path=args.image,
-        out_path=args.output,
-        out_width=args.width,
-        out_height=args.height,
-        prompt=args.prompt,
-        fallback=args.fallback,
-        step=args.step,
-        square=args.square,
-        humans=args.humans,
-        verbose=args.verbose,
-        openai_api_key=args.openai_api_key,
-        hf_api_key=args.hf_api_key,
-        prompt_model=args.prompt_model,
-    )
-    asyncio.run(inpainter.inpaint())
-    print("Output image saved at:", inpainter.out_path)
-
+def main(*args, **kwargs):
+    if args := gui(*args, **kwargs).parse_args():
+        args = vars(args)
+        if args.get("cmd_describe", None):
+            log.success(describe(**args))
+        else: 
+            log.success(inpaint(**args))
 
 if __name__ == "__main__":
     main()
