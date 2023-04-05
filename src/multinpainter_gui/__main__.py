@@ -4,24 +4,64 @@ import asyncio
 from pathlib import Path
 import sys, os
 from PIL import Image
+import platform
+import subprocess
 
-#from ezgooey.ez import *
+
+def is_dark_mode():
+    def is_windows_dark_mode():
+        try:
+            import winreg
+
+            with winreg.OpenKey(
+                winreg.HKEY_CURRENT_USER,
+                r"Software\Microsoft\Windows\CurrentVersion\Themes\Personalize",
+            ) as key:
+                value, _ = winreg.QueryValueEx(key, "AppsUseLightTheme")
+            return value == 0
+        except (FileNotFoundError, ValueError):
+            return False
+
+    def is_macos_dark_mode():
+        try:
+            result = subprocess.check_output(
+                "defaults read -g AppleInterfaceStyle 2>/dev/null",
+                shell=True,
+                text=True,
+            ).strip()
+            return result == "Dark"
+        except subprocess.CalledProcessError:
+            return False
+
+    system = platform.system()
+
+    if system == "Windows":
+        return is_windows_dark_mode()
+    elif system == "Darwin":
+        return is_macos_dark_mode()
+    else:
+        return False
+
+
+# from ezgooey.ez import *
 import ezgooey.logging as logging
 
-from gooey import Gooey, GooeyParser #, Events
+from gooey import Gooey, GooeyParser  # , Events
 from multinpainter_gui import __version__
+
+short_version = ".".join(__version__.split(".")[:2])
 from multinpainter import DESCRPTION_MODEL
 from multinpainter.__main__ import *
 
-GUI_NAME = "Multinpainter GUI"
-CLI_NAME = "multinpainter-gui"
-COLOR_BG_DARK = "#1e1e1e"
-COLOR_BG_LIGHT = "#282828"
-COLOR_TEXT1 = "#dedede"
-COLOR_TEXT2 = "#a4a4a4"
-STD_OPTIONS = {"label_color": COLOR_TEXT1, "help_color": COLOR_TEXT2}
-log = logging.logger(CLI_NAME)
+dark = is_dark_mode()
 
+GUI_NAME = f"Multinpainter GUI {short_version}"
+CLI_NAME = "multinpainter-gui"
+COLOR_BG_DARK = "#1e1e1e" if dark else "#f6f6f6"
+COLOR_BG_LIGHT = "#1e1e1e" if dark else "#f6f6f6"
+COLOR_TEXT1 = "#dedede" if dark else "#2b2b2b"
+COLOR_TEXT2 = "#a4a4a4" if dark else "#2b2b2b"
+STD_OPTIONS = {"label_color": COLOR_TEXT1, "help_color": COLOR_TEXT2}
 
 
 def get_pictures_folder():
@@ -35,6 +75,7 @@ def get_pictures_folder():
     else:
         return home
 
+
 def check_image(image_path):
     try:
         with Image.open(image_path) as image:
@@ -42,7 +83,8 @@ def check_image(image_path):
             print(f"{width} x {height}")
         return image_path
     except Exception as e:
-        raise ValueError(f"{image_path} is not an image") from e     
+        raise ValueError(f"{image_path} is not an image") from e
+
 
 @Gooey(
     # language_dir=getResourcePath("languages"),
@@ -53,7 +95,7 @@ def check_image(image_path):
     auto_start=False,
     body_bg_color=COLOR_BG_DARK,
     clear_before_run=False,
-    default_size=(900, 700),
+    default_size=(800, 570),
     disable_progress_bar_animation=False,
     disable_stop_button=False,
     dump_build_config=False,
@@ -77,7 +119,7 @@ def check_image(image_path):
     label_color=COLOR_TEXT2,
     language="english",
     load_build_config=None,
-    navigation="Tabbed",
+    navigation="TABBED",
     optional_cols=2,
     poll_external_updates=False,
     program_description=None,
@@ -85,7 +127,7 @@ def check_image(image_path):
     progress_expr=None,
     progress_regex=None,
     required_cols=1,
-    #requires_shell=True,
+    # requires_shell=True,
     return_to_config=False,
     richtext_controls=True,
     show_failure_modal=True,
@@ -97,12 +139,12 @@ def check_image(image_path):
     sidebar_bg_color=COLOR_BG_LIGHT,
     sidebar_title="Actions",
     suppress_gooey_flag=False,
-    tabbed_groups=True,
+    tabbed_groups=False,
     target=None,
     terminal_font_color=COLOR_TEXT1,
     terminal_panel_color=COLOR_BG_LIGHT,
-    #use_events=[Events.VALIDATE_FORM],
-    use_legacy_titles=False,
+    # use_events=[Events.VALIDATE_FORM],
+    use_legacy_titles=True,
     menu=[
         {
             "name": "Help",
@@ -127,16 +169,25 @@ def check_image(image_path):
 def gui():
     return cli()
 
+
 def cli():
-    common_parser = GooeyParser(add_help=True, description="Perform iterative inpainting on an image file using OpenAI's DALL-E 2 model.")
-    common_parser.add_argument(
+    top_parser = GooeyParser(
+        add_help=False,
+    )
+    top_group = top_parser.add_argument_group(
+        "",
+        gooey_options={
+            **STD_OPTIONS,
+            **{},
+        },
+    )
+    top_group.add_argument(
         "-i",
         "--image",
-        required=True,
         type=str,
         dest="image",
         metavar="Input image",
-        help="Path to the input image file",
+        help="Image that you want to outpaint",
         widget="FileChooser",
         gooey_options={
             **STD_OPTIONS,
@@ -148,96 +199,103 @@ def cli():
             },
         },
     )
-    common_parser.add_argument(
-        "-D",
-        "--describe",
-        dest="cmd_describe",
-        metavar="Describe image",
-        action="store_true",
-        help=" Only describe the image (generate simple prompt)",
+
+    adv_parser = GooeyParser(
+        add_help=False,
+    )
+    adv_group = adv_parser.add_argument_group(
+        "",
         gooey_options={
             **STD_OPTIONS,
             **{
-                "full_width": True,
+                "collapsible": True,
             },
         },
     )
-    common_settings_group = common_parser.add_argument_group("advanced")
-    common_settings_group.add_argument(
+    adv_group.add_argument(
         "-O",
         "--openai-api-key",
         type=str,
         dest="openai_api_key",
         default=os.environ.get("OPENAI_API_KEY"),
-        metavar="OpenAI API key",
-        help="Not needed if OPENAI_API_KEY environment variable is set",
+        metavar=" ",
+        help="OpenAI API key (OPENAI_API_KEY env variable)",
         widget="PasswordField",
         gooey_options={
             **STD_OPTIONS,
             **{},
         },
     )
-    common_settings_group.add_argument(
+    adv_group.add_argument(
         "-F",
         "--hf-api-key",
         type=str,
         dest="hf_api_key",
         default=os.environ.get("HUGGINGFACEHUB_API_TOKEN"),
-        metavar="Huggingface API key",
-        help="Not needed if HUGGINGFACEHUB_API_TOKEN environment variable is set",
+        metavar=" ",
+        help="Huggingface API key (HUGGINGFACEHUB_API_TOKEN env variable)",
         widget="PasswordField",
         gooey_options={
             **STD_OPTIONS,
             **{},
         },
     )
-    common_settings_group.add_argument(
+    adv_group.add_argument(
         "-v",
         "--verbose",
         dest="verbose",
         action="store_true",
         default=True,
-        metavar="Verbose",
+        metavar=" ",
         help=" Print detailed info and save intermediate images",
         gooey_options={
             **STD_OPTIONS,
             **{},
         },
     )
-    common_settings_group.add_argument(
+    adv_group.add_argument(
         "-P",
         "--prompt-model",
         type=str,
         dest="prompt_model",
-        metavar="Image description model",
+        metavar=" ",
         default=DESCRPTION_MODEL,
-        help="The Huggingface model to describe image",
+        help="Huggingface model to describe image",
         gooey_options={
             **STD_OPTIONS,
             **{},
         },
     )
 
-    parser = common_parser
-    #parser = GooeyParser(
-    #    prog="",
-    #    description="Perform iterative inpainting on an image file using OpenAI's DALL-E 2 model.",
-    #)
-    #subparsers = parser.add_subparsers(dest="command", help="commands")
+    mid_parser = GooeyParser(
+        add_help=False,
+        prog="",
+        description="Perform iterative inpainting on an image file using OpenAI's DALL-E 2 model.",
+        # parents=[top_parser],
+    )
+    mid_subparsers = mid_parser.add_subparsers(dest="command", help="commands")
+    mid_inpaint_parser = mid_subparsers.add_parser(
+        "Inpaint",
+        help="Perform iterative inpainting on an image file",
+        description="Iterative inpanting with Dall-E",
+        parents=[top_parser],
+        add_help=False,
+    )
+    mid_inpaint_group = mid_inpaint_parser.add_argument_group(
+        "",
+        gooey_options={
+            **STD_OPTIONS,
+            **{},
+        },
+    )
 
-    #inpaint_parser = subparsers.add_parser(
-    #    "inpaint",
-    #    help="Perform iterative inpainting on an image file",
-    #    parents=[common_parser],
-    #)
-    inpaint_parser = common_parser
-    inpaint_parser.add_argument(
+    mid_inpaint_group.add_argument(
         "-o",
         "--output",
         type=str,
         dest="output",
         metavar="Output image",
-        help="Path to the output image file",
+        help="If empty, image (and intermediate images) will be saved in source folder",
         widget="FileSaver",
         gooey_options={
             **STD_OPTIONS,
@@ -249,37 +307,37 @@ def cli():
             },
         },
     )
-    inpaint_parser.add_argument(
-        "-w",
+    mid_inpaint_group.add_argument(
+        "-W",
         "--width",
         type=int,
+        default=1920,
         dest="width",
-        metavar="Width",
-        help="Output image width",
+        metavar="Output image width",
         widget="IntegerField",
         gooey_options={
             **STD_OPTIONS,
-            **{'max': 32768},
+            **{"max": 32768},
         },
     )
-    inpaint_parser.add_argument(
+    mid_inpaint_group.add_argument(
         "-H",
         "--height",
         type=int,
+        default=1080,
         dest="height",
-        metavar="Height",
-        help="Output image height",
+        metavar="Output image height",
         widget="IntegerField",
         gooey_options={
             **STD_OPTIONS,
-            **{'max': 32768},
+            **{"max": 32768},
         },
     )
-    inpaint_parser.add_argument(
+    mid_inpaint_group.add_argument(
         "-u",
         "--humans",
         dest="humans",
-        metavar="Detect humans",
+        metavar=" ",
         action="store_true",
         help=" Apply default prompt if human is found and fallback prompt if not",
         gooey_options={
@@ -289,66 +347,99 @@ def cli():
             },
         },
     )
-    inpaint_parser.add_argument(
+    mid_inpaint_group.add_argument(
         "-p",
         "--prompt",
         type=str,
         dest="prompt",
-        metavar="Prompt",
-        help="Default prompt for inpainting or prompt if human is found",
+        metavar=" ",
+        help="Default prompt for inpainting or for human in square",
         gooey_options={
             **STD_OPTIONS,
             **{},
         },
     )
-    inpaint_parser.add_argument(
+    mid_inpaint_group.add_argument(
         "-f",
         "--fallback",
         type=str,
         dest="fallback",
-        metavar="Fallback prompt",
-        help="Prompt to use if no human is found (autogenerated if empty)",
+        metavar=" ",
+        help="Fallback prompt if no human in square (auto if empty)",
         gooey_options={
             **STD_OPTIONS,
             **{},
         },
     )
-    #inpaint_settings_group = inpaint_parser.add_argument_group("Inpainting")
-    inpaint_settings_group = common_settings_group
-    inpaint_settings_group.add_argument(
+    mid_inpaint_settings_group = mid_inpaint_parser.add_argument_group(
+        "",
+        gooey_options={
+            **STD_OPTIONS,
+            **{
+                "collapsible": True,
+            },
+        },
+    )
+    # mid_inpaint_settings_group = adv_group
+    mid_inpaint_settings_group.add_argument(
         "-S",
         "--square",
         type=int,
         dest="square",
-        metavar="Inpainting square",
+        metavar=" ",
         default=1024,
         choices=[1024, 512, 256],
-        help="The size of the square window to use for inpainting (1024, 512, 256)",
+        help="Size of inpainting square",
         gooey_options={
             **STD_OPTIONS,
             **{},
         },
     )
-    inpaint_settings_group.add_argument(
+    mid_inpaint_settings_group.add_argument(
         "-s",
         "--step",
         type=int,
         dest="step",
-        metavar="Inpainting step size",
-        help="The step size in pixels to move the window (default: 50% of square)",
+        metavar=" ",
+        help="Step size to move square (0 = 50% of square)",
         widget="IntegerField",
         gooey_options={
             **STD_OPTIONS,
-            **{'max': 32768},
+            **{"max": 32768},
         },
     )
 
+    mid_describe_parser = mid_subparsers.add_parser(
+        "Describe",
+        help="Describe the image",
+        description="Generate simple prompt for image",
+        parents=[top_parser],
+        add_help=False,
+    )
 
-    #describe_parser = subparsers.add_parser(
-    #    "describe",
-    #    help="Describe the image",
-    #    parents=[common_parser],
-    #)
+    parser = GooeyParser(
+        add_help=False,
+        prog="",
+        description="Perform iterative inpainting on an image file using OpenAI's DALL-E 2 model.",
+        # parents=[top_parser],
+    )
+
+    subparsers = parser.add_subparsers(dest="command", help="commands")
+    inpaint_parser = subparsers.add_parser(
+        "Inpaint",
+        help="Perform iterative inpainting on an image file",
+        description="Iterative inpanting with Dall-E",
+        parents=[mid_inpaint_parser, adv_parser],
+        add_help=False,
+    )
+
+    describe_parser = subparsers.add_parser(
+        "Describe",
+        help="Describe the image",
+        description="Generate simple prompt for image",
+        parents=[mid_describe_parser, adv_parser],
+        add_help=False,
+    )
 
     return parser
 
@@ -356,10 +447,17 @@ def cli():
 def main(*args, **kwargs):
     if args := gui(*args, **kwargs).parse_args():
         args = vars(args)
-        if args.get("cmd_describe", None):
-            log.success(describe(**args))
-        else: 
+        if args.get("verbose", True):
+            logging.init(level=logging.DEBUG)
+        else:
+            logging.init(level=logging.WARN)
+        log = logging.logger(CLI_NAME)
+        command = args.pop("command")
+        if command == "Inpaint":
             log.success(inpaint(**args))
+        elif command == "Describe":
+            log.success(describe(**args))
+
 
 if __name__ == "__main__":
     main()
