@@ -95,7 +95,7 @@ def check_image(image_path):
     auto_start=False,
     body_bg_color=COLOR_BG_DARK,
     clear_before_run=False,
-    default_size=(800, 570),
+    default_size=(800, 580),
     disable_progress_bar_animation=False,
     disable_stop_button=False,
     dump_build_config=False,
@@ -187,7 +187,7 @@ def cli():
         type=str,
         dest="image",
         metavar="Input image",
-        help="Image that you want to outpaint",
+        help="Image that you want to process",
         widget="FileChooser",
         gooey_options={
             **STD_OPTIONS,
@@ -334,25 +334,11 @@ def cli():
         },
     )
     mid_inpaint_group.add_argument(
-        "-u",
-        "--humans",
-        dest="humans",
-        metavar=" ",
-        action="store_true",
-        help=" Apply default prompt if human is found and fallback prompt if not",
-        gooey_options={
-            **STD_OPTIONS,
-            **{
-                "full_width": True,
-            },
-        },
-    )
-    mid_inpaint_group.add_argument(
         "-p",
         "--prompt",
         type=str,
         dest="prompt",
-        metavar=" ",
+        metavar="Prompt",
         help="Default prompt for inpainting or for human in square",
         gooey_options={
             **STD_OPTIONS,
@@ -365,10 +351,24 @@ def cli():
         type=str,
         dest="fallback",
         metavar=" ",
-        help="Fallback prompt if no human in square (auto if empty)",
+        help="Fallback prompt (autogenerate if empty)",
         gooey_options={
             **STD_OPTIONS,
             **{},
+        },
+    )
+    mid_inpaint_group.add_argument(
+        "-u",
+        "--humans",
+        dest="humans",
+        metavar=" ",
+        action="store_true",
+        help=" Use fallback prompt if human not in square",
+        gooey_options={
+            **STD_OPTIONS,
+            **{
+                "full_width": True,
+            },
         },
     )
     mid_inpaint_settings_group = mid_inpaint_parser.add_argument_group(
