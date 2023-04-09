@@ -17,9 +17,12 @@ python3.10 -m venv venv
 # Activate the virtual environment
 source venv/bin/activate
 
+export CC="ccache gcc"
+export CXX="ccache g++"
+
 # Install dependencies
 cd ..
-python3.10 -m pip install --upgrade pip setuptools setuptools_scm wheel
+python3.10 -m pip install --upgrade pip setuptools setuptools_scm wheel urllib3 
 python3.10 -m pip install --upgrade nuitka
 python3.10 -m pip install --upgrade .
 cd app
@@ -32,8 +35,11 @@ python3 -m nuitka \
     --macos-create-app-bundle \
     --macos-app-icon="icons/multinpainter.icns" \
     --follow-imports \
+    --lto=yes \
+    --clang \
+    --jobs=$(sysctl -n hw.ncpu) \
     --show-modules \
-    --nofollow-import-to='Crypto,dask,distributed,distutils,IPython,nuitka,numba,pytest,setuptools_scm,snappy,test,tkinter,unittest' \
+    --nofollow-import-to='Crypto,dask,distributed,distutils,IPython,nuitka,numba,pytest,setuptools,setuptools_scm,snappy,test,tkinter,unittest' \
     --output-dir="${OUTPUT_FOLDER}" \
     "${SOURCE_FILE}"
 
