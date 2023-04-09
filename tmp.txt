@@ -1,1 +1,0 @@
-['/Users/adam/Developer/vcs/github.twardoch/pub/multinpainter-gui/src/multinpainter_gui/__main__.py']
