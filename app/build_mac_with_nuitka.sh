@@ -18,10 +18,24 @@ python3.10 -m venv venv
 source venv/bin/activate
 
 # Install dependencies
-python3.10 -m pip install ..
-python3.10 -m pip install nuitka
+cd ..
+python3.10 -m pip install --upgrade pip setuptools setuptools_scm wheel
+python3.10 -m pip install --upgrade nuitka
+python3.10 -m pip install --upgrade .
+cd app
 
-python3 -m nuitka --standalone --macos-app-icon="icons/multinpainter.icns" --macos-create-app-bundle --macos-disable-console --follow-imports --nofollow-import-to='IPython,unittest,setuptools_scm,multiprocessing,distributed,dask,numba,snappy,Crypto,pytest' --plugin-enable=tk-inter --output-dir="${OUTPUT_FOLDER}" "${SOURCE_FILE}"
+python3 -m nuitka \
+    --assume-yes-for-downloads \
+    --enable-plugin=tk-inter \
+    --standalone \
+    --macos-disable-console \
+    --macos-create-app-bundle \
+    --macos-app-icon="icons/multinpainter.icns" \
+    --follow-imports \
+    --show-modules \
+    --nofollow-import-to='Crypto,dask,distributed,distutils,IPython,nuitka,numba,pytest,setuptools_scm,snappy,test,tkinter,unittest' \
+    --output-dir="${OUTPUT_FOLDER}" \
+    "${SOURCE_FILE}"
 
 deactivate
 
@@ -36,7 +50,7 @@ mkdir -p "${APP_MACOS}"
 mkdir -p "${APP_RESOURCES}"
 
 # Create the Info.plist file
-cat > "${APP_CONTENTS}/Info.plist" << EOF
+cat >"${APP_CONTENTS}/Info.plist" <<EOF
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">

@@ -56,3 +56,4 @@ venv/
 wine/
 app/build/
 app/venv/
+app/multinpainter.build/

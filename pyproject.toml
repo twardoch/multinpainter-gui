@@ -1,15 +1,15 @@
 [build-system]
 # AVOID CHANGING REQUIRES: IT WILL BE UPDATED BY PYSCAFFOLD!
-requires = ["setuptools>=46.1.0", "setuptools_scm[toml]>=5", "wheel", "nuitka", "toml"]
-#build-backend = "setuptools.build_meta"
-build-backend = "nuitka.distutils.Build"
+requires = ["setuptools>=46.1.0", "setuptools_scm[toml]>=5", "wheel", "toml"]
+build-backend = "setuptools.build_meta"
+#build-backend = "nuitka.distutils.Build"
 
 [tool.setuptools_scm]
 # For smarter version schemes and other configuration options,
 # check out https://github.com/pypa/setuptools_scm
 version_scheme = "no-guess-dev"
 
-[nuitka]
+#[nuitka]
 # options with several values, e.g. avoiding including modules, accepts
 # list argument.
-nofollow-import-to = ["*.tests", "*.distutils"]
+#nofollow-import-to = ["*.tests", "*.distutils"]
