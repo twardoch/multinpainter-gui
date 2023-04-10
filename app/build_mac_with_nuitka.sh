@@ -10,6 +10,7 @@ APP_NAME="MultInpainter"
 SOURCE_FILE="multinpainter.py"
 OUTPUT_FOLDER="dist_nuitka"
 mkdir -p "${OUTPUT_FOLDER}"
+deactivate
 
 # Create a virtual environment
 python3.10 -m venv venv
@@ -27,16 +28,16 @@ python3.10 -m pip install --upgrade nuitka
 python3.10 -m pip install --upgrade .
 cd app
 
+    #--standalone \
+    #--onefile \
 python3 -m nuitka \
     --assume-yes-for-downloads \
-    --enable-plugin=tk-inter \
-    --standalone \
+    --enable-plugin='no-qt' \
     --macos-disable-console \
     --macos-create-app-bundle \
-    --macos-app-icon="icons/multinpainter.icns" \
+    --macos-app-icon="../icons/multinpainter.icns" \
     --follow-imports \
     --lto=yes \
-    --clang \
     --jobs=$(sysctl -n hw.ncpu) \
     --show-modules \
     --nofollow-import-to='Crypto,dask,distributed,distutils,IPython,nuitka,numba,pytest,setuptools,setuptools_scm,snappy,test,tkinter,unittest' \
