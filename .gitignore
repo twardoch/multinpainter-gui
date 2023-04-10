@@ -57,3 +57,4 @@ wine/
 app/build/
 app/venv/
 app/multinpainter.build/
+app/dist_nuitka/multinpainter.build/
