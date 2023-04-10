@@ -18,9 +18,6 @@ python3.10 -m venv venv
 # Activate the virtual environment
 source venv/bin/activate
 
-export CC="ccache gcc"
-export CXX="ccache g++"
-
 # Install dependencies
 cd ..
 python3.10 -m pip install --upgrade pip setuptools setuptools_scm wheel urllib3 
@@ -28,10 +25,11 @@ python3.10 -m pip install --upgrade nuitka
 python3.10 -m pip install --upgrade .
 cd app
 
-    #--standalone \
-    #--onefile \
 python3 -m nuitka \
     --assume-yes-for-downloads \
+    --clang \
+    --standalone \
+    --onefile \
     --enable-plugin='no-qt' \
     --macos-disable-console \
     --macos-create-app-bundle \
