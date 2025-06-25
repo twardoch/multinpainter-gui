@@ -7,7 +7,7 @@ cd "$dir" || exit
 
 # Define the name of the app, the source file, and the output folder
 APP_NAME="MultInpainter"
-SOURCE_FILE="multinpainter.py"
+SOURCE_FILE="multinpaint.py"
 OUTPUT_FOLDER="dist_nuitka"
 mkdir -p "${OUTPUT_FOLDER}"
 deactivate
@@ -25,11 +25,11 @@ python3.10 -m pip install --upgrade nuitka
 python3.10 -m pip install --upgrade .
 cd app
 
+#    --standalone \
+#    --onefile \
 python3 -m nuitka \
     --assume-yes-for-downloads \
     --clang \
-    --standalone \
-    --onefile \
     --enable-plugin='no-qt' \
     --macos-disable-console \
     --macos-create-app-bundle \

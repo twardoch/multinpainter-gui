@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 
-import asyncio
-from pathlib import Path
-import sys, os
-from PIL import Image
+import os
 import platform
 import subprocess
+import sys
+from pathlib import Path
+
+from PIL import Image
 
 
 def is_dark_mode():
@@ -45,8 +46,8 @@ def is_dark_mode():
 
 # from ezgooey.ez import *
 import ezgooey.logging as logging
-
 from gooey import Gooey, GooeyParser  # , Events
+
 from multinpainter_gui import __version__
 
 short_version = ".".join(__version__.split(".")[:2])
@@ -78,7 +79,7 @@ def get_pictures_folder():
 
 def check_image(image_path):
     try:
-        with Image.open(image_path) as image:
+        with Image.open(image_path):
             width, height = img.size
             print(f"{width} x {height}")
         return image_path
@@ -425,7 +426,7 @@ def cli():
     )
 
     subparsers = parser.add_subparsers(dest="command", help="commands")
-    inpaint_parser = subparsers.add_parser(
+    subparsers.add_parser(
         "Inpaint",
         help="Perform iterative inpainting on an image file",
         description="Iterative inpanting with Dall-E",
@@ -433,7 +434,7 @@ def cli():
         add_help=False,
     )
 
-    describe_parser = subparsers.add_parser(
+    subparsers.add_parser(
         "Describe",
         help="Describe the image",
         description="Generate simple prompt for image",
